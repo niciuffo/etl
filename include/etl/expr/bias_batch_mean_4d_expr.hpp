@@ -8,8 +8,8 @@
 #pragma once
 
 #include "etl/expr/base_temporary_expr.hpp"
-
 #include "etl/impl/cudnn/bias_batch_mean.hpp"
+#include "etl/impl/egblas/bias_batch_sum_4d.hpp"
 
 namespace etl {
 
@@ -67,18 +67,37 @@ struct bias_batch_mean_4d_expr : base_temporary_expr_un<bias_batch_mean_4d_expr<
     void assign_to(L&& lhs) const {
         static_assert(all_etl_expr<A, L>, "bias_batch_mean_4d only supported for ETL expressions");
 
-        auto& a = this->a();
+        auto &a = this->a();
 
         using T = value_t<A>;
 
         check(a, lhs);
 
-        if constexpr (!Mean && cudnn_enabled && all_floating<A, L>) {
+        const auto N = etl::size(a) / etl::size(lhs);
+        const auto D0 = etl::dim<0>(a);
+        const auto S0 = etl::size(a) / etl::dim<0>(a);
+        const auto S1 = S0 / etl::dim<1>(a);
+        const auto K = etl::size(lhs);
+
+        if constexpr (!Mean && impl::egblas::has_sbias_batch_sum_4d && all_row_major<A> && all_floating<A, L>) {
+            a.ensure_gpu_up_to_date();
+            lhs.ensure_gpu_allocated();
+
+            impl::egblas::bias_batch_sum_4d(N, D0, K, S0, S1, a.gpu_memory(), 1, lhs.gpu_memory(), 1);
+
+            lhs.validate_gpu();
+            lhs.invalidate_cpu();
+        } else if constexpr (Mean && impl::egblas::has_sbias_batch_mean_4d && all_row_major<A> && all_floating<A, L>) {
+            a.ensure_gpu_up_to_date();
+            lhs.ensure_gpu_allocated();
+
+            impl::egblas::bias_batch_mean_4d(N, D0, K, S0, S1, a.gpu_memory(), 1, lhs.gpu_memory(), 1);
+
+            lhs.validate_gpu();
+            lhs.invalidate_cpu();
+        } else if constexpr (!Mean && cudnn_enabled && all_floating<A, L>) {
             impl::cudnn::bias_batch_mean_4d(smart_forward_gpu(a), lhs);
         } else {
-            const auto N = etl::size(a) / etl::size(lhs);
-            const auto K = etl::size(lhs);
-
             standard_evaluator::pre_assign_rhs(a);
 
             a.ensure_cpu_up_to_date();
@@ -88,7 +107,7 @@ struct bias_batch_mean_4d_expr : base_temporary_expr_un<bias_batch_mean_4d_expr<
                 for (size_t k = first; k < last; ++k) {
                     T mean(0);
 
-                    for (size_t b = 0; b < etl::dim<0>(a); ++b) {
+                    for (size_t b = 0; b < D0; ++b) {
                         mean += sum(a(b)(k));
                     }
 
