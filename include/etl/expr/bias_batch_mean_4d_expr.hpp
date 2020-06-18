@@ -73,7 +73,6 @@ struct bias_batch_mean_4d_expr : base_temporary_expr_un<bias_batch_mean_4d_expr<
 
         check(a, lhs);
 
-        const auto N = etl::size(a) / etl::size(lhs);
         const auto D0 = etl::dim<0>(a);
         const auto S0 = etl::size(a) / etl::dim<0>(a);
         const auto S1 = S0 / etl::dim<1>(a);
@@ -83,7 +82,7 @@ struct bias_batch_mean_4d_expr : base_temporary_expr_un<bias_batch_mean_4d_expr<
             a.ensure_gpu_up_to_date();
             lhs.ensure_gpu_allocated();
 
-            impl::egblas::bias_batch_sum_4d(N, D0, K, S0, S1, a.gpu_memory(), 1, lhs.gpu_memory(), 1);
+            impl::egblas::bias_batch_sum_4d(D0, K, S0, S1, a.gpu_memory(), lhs.gpu_memory(), 1);
 
             lhs.validate_gpu();
             lhs.invalidate_cpu();
@@ -91,13 +90,15 @@ struct bias_batch_mean_4d_expr : base_temporary_expr_un<bias_batch_mean_4d_expr<
             a.ensure_gpu_up_to_date();
             lhs.ensure_gpu_allocated();
 
-            impl::egblas::bias_batch_mean_4d(N, D0, K, S0, S1, a.gpu_memory(), 1, lhs.gpu_memory(), 1);
+            impl::egblas::bias_batch_mean_4d(D0, K, S0, S1, a.gpu_memory(), lhs.gpu_memory(), 1);
 
             lhs.validate_gpu();
             lhs.invalidate_cpu();
         } else if constexpr (!Mean && cudnn_enabled && all_floating<A, L>) {
             impl::cudnn::bias_batch_mean_4d(smart_forward_gpu(a), lhs);
         } else {
+            const auto N = etl::size(a) / etl::size(lhs);
+
             standard_evaluator::pre_assign_rhs(a);
 
             a.ensure_cpu_up_to_date();
