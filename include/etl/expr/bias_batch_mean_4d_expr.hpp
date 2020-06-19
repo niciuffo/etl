@@ -94,7 +94,7 @@ struct bias_batch_mean_4d_expr : base_temporary_expr_un<bias_batch_mean_4d_expr<
 
             lhs.validate_gpu();
             lhs.invalidate_cpu();
-        } else if*/ constexpr (!Mean && cudnn_enabled && all_floating<A, L>) {
+        } else*/ if constexpr (!Mean && cudnn_enabled && all_floating<A, L>) {
             impl::cudnn::bias_batch_mean_4d(smart_forward_gpu(a), lhs);
         } else {
             const auto N = etl::size(a) / etl::size(lhs);
