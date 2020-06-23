@@ -5,6 +5,13 @@
 //  http://opensource.org/licenses/MIT)
 //=======================================================================
 
+/*
+ * This is a tentative implementation of a BLIS Like kernel
+ * However, this is current slower than the other kernels
+ * and it is also only "optimized" for float
+ * so, it is current disabled.
+ */
+
 #pragma once
 
 namespace etl::impl::vec {
@@ -352,7 +359,7 @@ void gemm_macro_kernel(size_t mc,
  */
 template <typename V, typename T>
 void gemm_large_kernel_workspace_rr(const T* A, const T* B, T* C, size_t m, size_t n, size_t k, T beta) {
-    if constexpr (is_floating<T>) {
+    if constexpr (is_floating_t<T>) {
         static constexpr const size_t MC = gemm_config<T>::MC;
         static constexpr const size_t KC = gemm_config<T>::KC;
         static constexpr const size_t NC = gemm_config<T>::NC;

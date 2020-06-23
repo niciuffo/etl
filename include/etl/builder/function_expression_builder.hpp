@@ -269,21 +269,15 @@ auto hard_sigmoid(E&& x) -> decltype(etl::clip(x * 0.2 + 0.5, 0.0, 1.0)) {
  * \param e The ETL expression
  * \return An ETL expression representing the softmax function of the input.
  */
-template <typename E, cpp_enable_iff(etl::is_1d<E>)>
+template <typename E>
 auto softmax(E&& e) {
     static_assert(is_etl_expr<E>, "etl::softmax can only be used on ETL expressions");
-    return exp(e) / sum(exp(e));
-}
 
-/*!
- * \brief Return the softmax function of the given ETL expression.
- * \param e The ETL expression
- * \return An ETL expression representing the softmax function of the input.
- */
-template <typename E, cpp_enable_iff(etl::is_2d<E>)>
-auto softmax(E&& e) -> batch_softmax_expr<detail::build_type<E>, false> {
-    static_assert(is_etl_expr<E>, "etl::softmax can only be used on ETL expressions");
-    return batch_softmax_expr<detail::build_type<E>, false>{e};
+    if constexpr (etl::is_1d<E>) {
+        return exp(e) / sum(exp(e));
+    } else {
+        return batch_softmax_expr<detail::build_type<E>, false>{e};
+    }
 }
 
 /*!
@@ -292,23 +286,16 @@ auto softmax(E&& e) -> batch_softmax_expr<detail::build_type<E>, false> {
  * \param e The ETL expression
  * \return An ETL expression representing the softmax function of the input.
  */
-template <typename E, cpp_enable_iff(etl::is_2d<E>)>
-auto stable_softmax(E&& e) -> batch_softmax_expr<detail::build_type<E>, true> {
-    static_assert(is_etl_expr<E>, "etl::softmax can only be used on ETL expressions");
-    return batch_softmax_expr<detail::build_type<E>, true>{e};
-}
-
-/*!
- * \brief Returns the softmax function of the given ETL expression.
- * This version is implemented so that numerical stability is preserved.
- * \param e The ETL expression
- * \return An ETL expression representing the softmax function of the input.
- */
-template <typename E, cpp_enable_iff(etl::is_1d<E>)>
+template <typename E>
 auto stable_softmax(E&& e) {
-    static_assert(is_etl_expr<E>, "etl::stable_softmax can only be used on ETL expressions");
-    auto m = max(e);
-    return exp(e - m) / sum(exp(e - m));
+    static_assert(is_etl_expr<E>, "etl::softmax can only be used on ETL expressions");
+
+    if constexpr (etl::is_1d<E>) {
+        auto m = max(e);
+        return exp(e - m) / sum(exp(e - m));
+    } else {
+        return batch_softmax_expr<detail::build_type<E>, true>{e};
+    }
 }
 
 /*!
@@ -351,6 +338,48 @@ auto bernoulli(const E& value) -> detail::unary_helper<E, bernoulli_unary_op> {
 template <typename E, typename G>
 auto bernoulli(G& g, E&& value) {
     return detail::make_stateful_unary_expr<E, bernoulli_unary_g_op<G, value_t<E>>>(value, g);
+}
+
+/*!
+ * \brief Apply Bernoulli sampling to the values of the expression
+ * \param value the expression to sample
+ * \return an expression representing the Bernoulli sampling of the given expression
+ */
+template <typename E>
+auto state_bernoulli(const E& value) {
+    static_assert(is_etl_expr<E>, "etl::bernoulli can only be used on ETL expressions");
+    return detail::make_stateful_unary_expr<E, state_bernoulli_unary_op<value_t<E>>>(value);
+}
+
+/*!
+ * \brief Apply Bernoulli sampling to the values of the expression
+ * \param value the expression to sample
+ * \return an expression representing the Bernoulli sampling of the given expression
+ */
+template <typename E>
+auto state_bernoulli(const E& value, const std::shared_ptr<void*> & states) {
+    static_assert(is_etl_expr<E>, "etl::bernoulli can only be used on ETL expressions");
+    return detail::make_stateful_unary_expr<E, state_bernoulli_unary_op<value_t<E>>>(value, states);
+}
+
+/*!
+ * \brief Apply Bernoulli sampling to the values of the expression
+ * \param value the expression to sample
+ * \return an expression representing the Bernoulli sampling of the given expression
+ */
+template <typename E, typename G, cpp_enable_iff(is_etl_expr<E>)>
+auto state_bernoulli(G& g, E&& value) {
+    return detail::make_stateful_unary_expr<E, state_bernoulli_unary_g_op<G, value_t<E>>>(value, g);
+}
+
+/*!
+ * \brief Apply Bernoulli sampling to the values of the expression
+ * \param value the expression to sample
+ * \return an expression representing the Bernoulli sampling of the given expression
+ */
+template <typename E, typename G, cpp_enable_iff(is_etl_expr<E>)>
+auto state_bernoulli(G& g, E&& value, const std::shared_ptr<void*> & states) {
+    return detail::make_stateful_unary_expr<E, state_bernoulli_unary_g_op<G, value_t<E>>>(value, g, states);
 }
 
 /*!
