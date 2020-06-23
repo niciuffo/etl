@@ -95,6 +95,7 @@ inline void cublas_gemm(cublasHandle_t handle,
                         const float* beta,
                         float* C,
                         size_t ldc) {
+    cublas_check(cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH));
     cublas_check(cublasSgemm(handle, transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc));
 }
 
@@ -129,6 +130,7 @@ inline void cublas_gemm(cublasHandle_t handle,
                         const double* beta,
                         double* C,
                         size_t ldc) {
+    cublas_check(cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH));
     cublas_check(cublasDgemm(handle, transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc));
 }
 
@@ -163,6 +165,7 @@ inline void cublas_gemm(cublasHandle_t handle,
                         cuComplex* beta,
                         std::complex<float>* C,
                         size_t ldc) {
+    cublas_check(cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH));
     cublas_check(cublasCgemm(handle, transa, transb, m, n, k, alpha, reinterpret_cast<const cuComplex*>(A), lda, reinterpret_cast<const cuComplex*>(B), ldb,
                              beta, reinterpret_cast<cuComplex*>(C), ldc));
 }
@@ -198,6 +201,7 @@ inline void cublas_gemm(cublasHandle_t handle,
                         cuDoubleComplex* beta,
                         std::complex<double>* C,
                         size_t ldc) {
+    cublas_check(cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH));
     cublas_check(cublasZgemm(handle, transa, transb, m, n, k, alpha, reinterpret_cast<const cuDoubleComplex*>(A), lda,
                              reinterpret_cast<const cuDoubleComplex*>(B), ldb, beta, reinterpret_cast<cuDoubleComplex*>(C), ldc));
 }
@@ -229,6 +233,7 @@ inline void cublas_gemv(cublasHandle_t handle,
                         const float* beta,
                         float* C,
                         size_t ldc) {
+    cublas_check(cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH));
     cublas_check(cublasSgemv(handle, trans, m, n, alpha, A, lda, B, ldb, beta, C, ldc));
 }
 
@@ -259,6 +264,7 @@ inline void cublas_gemv(cublasHandle_t handle,
                         const double* beta,
                         double* C,
                         size_t ldc) {
+    cublas_check(cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH));
     cublas_check(cublasDgemv(handle, trans, m, n, alpha, A, lda, B, ldb, beta, C, ldc));
 }
 
@@ -289,6 +295,7 @@ inline void cublas_gemv(cublasHandle_t handle,
                         cuComplex* beta,
                         std::complex<float>* C,
                         size_t ldc) {
+    cublas_check(cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH));
     cublas_check(cublasCgemv(handle, trans, m, n, alpha, reinterpret_cast<const cuComplex*>(A), lda, reinterpret_cast<const cuComplex*>(B), ldb, beta,
                              reinterpret_cast<cuComplex*>(C), ldc));
 }
@@ -320,6 +327,7 @@ inline void cublas_gemv(cublasHandle_t handle,
                         cuDoubleComplex* beta,
                         std::complex<double>* C,
                         size_t ldc) {
+    cublas_check(cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH));
     cublas_check(cublasZgemv(handle, trans, m, n, alpha, reinterpret_cast<const cuDoubleComplex*>(A), lda, reinterpret_cast<const cuDoubleComplex*>(B), ldb,
                              beta, reinterpret_cast<cuDoubleComplex*>(C), ldc));
 }
