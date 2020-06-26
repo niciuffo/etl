@@ -63,9 +63,9 @@ auto abs(E&& value) -> detail::unary_helper<E, abs_unary_op> {
  * \return an expression representing the max values from lhs and rhs
  */
 template <typename L, typename R>
-auto max(L&& lhs, R&& rhs) -> detail::left_binary_helper_op_scalar<L, R, max_binary_op<detail::wrap_scalar_value_t<L>, detail::wrap_scalar_value_t<R>>> {
+auto max(L&& lhs, R&& rhs) -> detail::left_binary_helper_op_scalar<L, R, max_binary_op<detail::wrap_scalar_value_t<L>, detail::wrap_scalar_value_t<L>>> {
     static_assert(is_etl_expr<L>, "etl::max can only be used on ETL expressions");
-    return {detail::wrap_scalar(lhs), detail::wrap_scalar(rhs)};
+    return {detail::wrap_scalar(lhs), detail::smart_wrap_scalar<L>(rhs)};
 }
 
 /*!
@@ -75,9 +75,9 @@ auto max(L&& lhs, R&& rhs) -> detail::left_binary_helper_op_scalar<L, R, max_bin
  * \return an expression representing the min values from lhs and rhs
  */
 template <typename L, typename R>
-auto min(L&& lhs, R&& rhs) -> detail::left_binary_helper_op_scalar<L, R, min_binary_op<detail::wrap_scalar_value_t<L>, detail::wrap_scalar_value_t<R>>> {
+auto min(L&& lhs, R&& rhs) -> detail::left_binary_helper_op_scalar<L, R, min_binary_op<detail::wrap_scalar_value_t<L>, detail::wrap_scalar_value_t<L>>> {
     static_assert(is_etl_expr<L>, "etl::max can only be used on ETL expressions");
-    return {detail::wrap_scalar(lhs), detail::wrap_scalar(rhs)};
+    return {detail::wrap_scalar(lhs), detail::smart_wrap_scalar<L>(rhs)};
 }
 
 /*!
@@ -290,6 +290,49 @@ auto logistic_noise(G& g, E&& value) {
 }
 
 /*!
+ * \brief Add some normal noise (0, sigmoid(x)) to the given expression
+ * \param value The input ETL expression
+ * \return an expression representing the input expression plus noise
+ */
+template <typename E>
+auto state_logistic_noise(E&& value) {
+    static_assert(is_etl_expr<E>, "etl::logistic_noise can only be used on ETL expressions");
+    return detail::make_stateful_unary_expr<E, state_logistic_noise_unary_op<value_t<E>>>(value);
+}
+
+/*!
+ * \brief Add some normal noise (0, sigmoid(x)) to the given expression
+ * \param value The input ETL expression
+ * \return an expression representing the input expression plus noise
+ */
+template <typename E>
+auto state_logistic_noise(E&& value, const std::shared_ptr<void*> & states) {
+    static_assert(is_etl_expr<E>, "etl::logistic_noise can only be used on ETL expressions");
+    return detail::make_stateful_unary_expr<E, state_logistic_noise_unary_op<value_t<E>>>(value, states);
+}
+
+/*!
+ * \brief Add some normal noise (0, sigmoid(x)) to the given expression
+ * \param value The input ETL expression
+ * \return an expression representing the input expression plus noise
+ */
+template <typename G, typename E, cpp_enable_iff(is_etl_expr<E>)>
+auto state_logistic_noise(G& g, E&& value) {
+    return detail::make_stateful_unary_expr<E, state_logistic_noise_unary_g_op<G, value_t<E>>>(value, g);
+}
+
+/*!
+ * \brief Add some normal noise (0, sigmoid(x)) to the given expression
+ * \param value The input ETL expression
+ * \return an expression representing the input expression plus noise
+ */
+template <typename E, typename G>
+auto state_logistic_noise(G& g, E&& value, const std::shared_ptr<void*> & states) {
+    static_assert(is_etl_expr<E>, "etl::logistic_noise can only be used on ETL expressions");
+    return detail::make_stateful_unary_expr<E, state_logistic_noise_unary_g_op<G, value_t<E>>>(value, g, states);
+}
+
+/*!
  * \brief Add some normal noise N(0,1) to x.
  * No noise is added to values equal to zero or to given the value.
  * \param value The value to add noise to
@@ -394,24 +437,15 @@ auto rep_l(E&& value, size_t d1, D... d) -> unary_expr<value_t<E>, dyn_rep_l_tra
  *
  * \return an expression representing the aggregated expression
  */
-template <typename E, cpp_enable_iff(decay_traits<E>::dimensions() > 1)>
-auto argmax(E&& value) -> detail::stable_transform_helper<E, argmax_transformer> {
+template <typename E>
+auto argmax(E&& value) {
     static_assert(is_etl_expr<E>, "etl::argmax can only be used on ETL expressions");
-    return detail::make_transform_expr<E, argmax_transformer>(value);
-}
 
-/*!
- * \brief Returns the indices of the maximum values in the first axis of the
- * given matrix. If passed a vector, returns the index of the maximum element.
- *
- * \param value The matrix or vector to aggregate
- *
- * \return an expression representing the aggregated expression
- */
-template <typename E, cpp_enable_iff(is_1d<E>)>
-size_t argmax(E&& value) {
-    static_assert(is_etl_expr<E>, "etl::argmax can only be used on ETL expressions");
-    return max_index(value);
+    if constexpr (decay_traits<E>::dimensions() > 1) {
+        return detail::make_transform_expr<E, argmax_transformer>(value);
+    } else {
+        return max_index(value);
+    }
 }
 
 /*!
@@ -422,24 +456,15 @@ size_t argmax(E&& value) {
  *
  * \return an expression representing the aggregated expression
  */
-template <typename E, cpp_enable_iff(decay_traits<E>::dimensions() > 1)>
-auto argmin(E&& value) -> detail::stable_transform_helper<E, argmin_transformer> {
-    static_assert(is_etl_expr<E>, "etl::argmax can only be used on ETL expressions");
-    return detail::make_transform_expr<E, argmin_transformer>(value);
-}
+template <typename E>
+auto argmin(E&& value) {
+    static_assert(is_etl_expr<E>, "etl::argmin can only be used on ETL expressions");
 
-/*!
- * \brief Returns the indices of the minimum values in the first axis of the
- * given matrix. If passed a vector, returns the index of the mimimum element.
- *
- * \param value The value to aggregate
- *
- * \return an expression representing the aggregated expression
- */
-template <typename E, cpp_enable_iff(is_1d<E>)>
-size_t argmin(E&& value) {
-    static_assert(is_etl_expr<E>, "etl::argmax can only be used on ETL expressions");
-    return min_index(value);
+    if constexpr (decay_traits<E>::dimensions() > 1) {
+        return detail::make_transform_expr<E, argmin_transformer>(value);
+    } else {
+        return min_index(value);
+    }
 }
 
 /*!

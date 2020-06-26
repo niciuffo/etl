@@ -319,9 +319,14 @@ cudnnTensorDescriptor_t create_tensor_flat(I&& input) {
 
     auto data_type = std::is_same_v<std::remove_const_t<T>, float> ? CUDNN_DATA_FLOAT : CUDNN_DATA_DOUBLE;
 
+    // Surprisingly, CUDNN does not do any optimization for flat vectors
+    // It means that the position of the dimension is very important
+    // Putting at the first position (N) is generally the slowest case
+    // But putting it at the last (W) seems better
+
     cudnnTensorDescriptor_t tensor;
     cudnn_check(cudnnCreateTensorDescriptor(&tensor));
-    cudnn_check(cudnnSetTensor4dDescriptor(tensor, CUDNN_TENSOR_NCHW, data_type, etl::size(input), 1, 1, 1));
+    cudnn_check(cudnnSetTensor4dDescriptor(tensor, CUDNN_TENSOR_NCHW, data_type, 1, 1, 1, etl::size(input)));
 
     return tensor;
 }
@@ -494,5 +499,47 @@ inline cudnn_wrapper<cudnnPoolingDescriptor_t> create_pooling_desc_wrapper(
     cudnnPoolingMode_t mode, size_t c1, size_t c2, size_t c3, size_t s1, size_t s2, size_t s3, size_t p1, size_t p2, size_t p3) {
     return cudnn_wrapper<cudnnPoolingDescriptor_t>{create_pooling_desc(mode, c1, c2, c3, s1, s2, s3, p1, p2, p3)};
 }
+
+template <typename Value>
+struct cudnn_desc_cache_value {
+    bool found;
+
+#ifdef ETL_CUDNN_DESC_CACHE
+    Value & value;
+#else
+    Value value;
+#endif
+
+    operator bool() const {
+        return found;
+    }
+
+    Value * operator->() {
+        return &value;
+    }
+};
+
+template <typename Key, typename Value>
+struct cudnn_desc_cache {
+#ifdef ETL_CUDNN_DESC_CACHE
+    std::vector<std::pair<Key, std::unique_ptr<Value>>> cache;
+
+    cudnn_desc_cache_value<Value> operator[]([[maybe_unused]] const Key& key) {
+        for (auto & [k, value] : cache) {
+            if (k == key) {
+                return {true, *value};
+            }
+        }
+
+        cache.emplace_back(key, std::make_unique<Value>());
+
+        return {false, *cache.back().second};
+    }
+#else
+    cudnn_desc_cache_value<Value> operator[]([[maybe_unused]] const Key& key) {
+        return {false, Value{}};
+    }
+#endif
+};
 
 } //end of namespace etl::impl::cudnn
