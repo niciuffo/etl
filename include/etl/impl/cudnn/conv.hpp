@@ -12,6 +12,8 @@
 
 #pragma once
 
+//#define ETL_TENSOR_CORES
+
 #ifdef ETL_CUDNN_MODE
 
 #include "etl/impl/cublas/cuda.hpp"
@@ -74,7 +76,9 @@ void conv2_valid_set(I&& input, K&& kernel, C&& conv, size_t s1, size_t s2, size
     cudnnConvolutionDescriptor_t convolution;
     cudnn_check(cudnnCreateConvolutionDescriptor(&convolution));
     cudnn_check(cudnnSetConvolution2dDescriptor(convolution, p1, p2, s1, s2, 1, 1, mode, data_type));
+#ifdef ETL_TENSOR_CORES
     cudnn_check(cudnnSetConvolutionMathType(convolution, CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION));
+#endif
 
     // Find the algorithm to use
     cudnnConvolutionFwdAlgo_t conv_algo;
@@ -188,7 +192,9 @@ void conv4_forward_set(I&& input, K&& kernel, C&& conv, size_t s1, size_t s2, si
     cudnnConvolutionDescriptor_t convolution;
     cudnn_check(cudnnCreateConvolutionDescriptor(&convolution));
     cudnn_check(cudnnSetConvolution2dDescriptor(convolution, p1, p2, s1, s2, 1, 1, mode, data_type));
+#ifdef ETL_TENSOR_CORES
     cudnn_check(cudnnSetConvolutionMathType(convolution, CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION));
+#endif
 
     // Find the algorithm to use
     cudnnConvolutionFwdAlgo_t conv_algo;
@@ -293,7 +299,9 @@ void conv4_backward_filter_set(I&& input, K&& kernel, C&& conv, size_t s1, size_
     cudnnConvolutionDescriptor_t convolution;
     cudnn_check(cudnnCreateConvolutionDescriptor(&convolution));
     cudnn_check(cudnnSetConvolution2dDescriptor(convolution, p1, p2, s1, s2, 1, 1, mode, data_type));
+#ifdef ETL_TENSOR_CORES
     cudnn_check(cudnnSetConvolutionMathType(convolution, CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION));
+#endif
 
     // Find the algorithm to use
     cudnnConvolutionBwdFilterAlgo_t conv_algo;
@@ -400,7 +408,9 @@ void conv2_full_set(I&& input, K&& kernel, C&& conv, cudnnConvolutionMode_t mode
     cudnnConvolutionDescriptor_t convolution;
     cudnn_check(cudnnCreateConvolutionDescriptor(&convolution));
     cudnn_check(cudnnSetConvolution2dDescriptor(convolution, 0, 0, 1, 1, 1, 1, mode, data_type));
+#ifdef ETL_TENSOR_CORES
     cudnn_check(cudnnSetConvolutionMathType(convolution, CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION));
+#endif
 
     // Find the algorithm to use
     cudnnConvolutionBwdDataAlgo_t conv_algo;
@@ -501,7 +511,9 @@ void conv2_valid_multi_set(I& input, K&& kernel, C&& conv, size_t s1, size_t s2,
     cudnnConvolutionDescriptor_t convolution;
     cudnn_check(cudnnCreateConvolutionDescriptor(&convolution));
     cudnn_check(cudnnSetConvolution2dDescriptor(convolution, p1, p2, s1, s2, 1, 1, mode, data_type));
+#ifdef ETL_TENSOR_CORES
     cudnn_check(cudnnSetConvolutionMathType(convolution, CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION));
+#endif
 
     // Find the algorithm to use
     cudnnConvolutionFwdAlgo_t conv_algo;
@@ -607,7 +619,9 @@ void conv4_backward_data_set(I&& input, K&& kernel, C&& conv, cudnnConvolutionMo
     cudnnConvolutionDescriptor_t convolution;
     cudnn_check(cudnnCreateConvolutionDescriptor(&convolution));
     cudnn_check(cudnnSetConvolution2dDescriptor(convolution, p1, p2, s1, s2, 1, 1, mode, data_type));
+#ifdef ETL_TENSOR_CORES
     cudnn_check(cudnnSetConvolutionMathType(convolution, CUDNN_TENSOR_OP_MATH_ALLOW_CONVERSION));
+#endif
 
     // Find the algorithm to use
     cudnnConvolutionBwdDataAlgo_t conv_algo;
