@@ -179,8 +179,6 @@ void conv4_forward_set(I&& input, K&& kernel, C&& conv, size_t s1, size_t s2, si
 
     auto data_type = std::is_same_v<type, float> ? CUDNN_DATA_FLOAT : CUDNN_DATA_DOUBLE;
 
-    data_type = CUDNN_DATA_FLOAT;
-
     decltype(auto) handle = start_cudnn();
 
     // Prepare the tensors
