@@ -12,7 +12,7 @@
 
 #pragma once
 
-//#define ETL_TENSOR_CORES
+#define ETL_TENSOR_CORES
 
 #ifdef ETL_CUDNN_MODE
 
